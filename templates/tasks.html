@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Scheduler</title>
+    <style>
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1, h3 {
+            color: #4CAF50; /* Dark green */
+        }
+        form {
+            max-width: 500px;
+            background-color: #333;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #4CAF50; /* Dark green */
+        }
+        input[type="text"], input[type="datetime-local"], input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #444;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50; /* Dark green */
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049; /* Darker green on hover */
+        }
+        .alert-success {
+            background-color: #4CAF50; /* Dark green */
+            color: #fff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .alert-error {
+            background-color: #dc3545; /* Red */
+            color: #fff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        p {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task Scheduler</h1>
+    {% if 'user_id' in session %}
+        <h3>Welcome, {{ session['username'] }}</h3>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('tasks') }}">
+            <label for="task">Task:</label>
+            <input type="text" id="task" name="task" required>
+            
+            <label for="due_date">Due Date:</label>
+            <input type="datetime-local" id="due_date" name="due_date" required>
+            
+            <input type="submit" value="Add Task">
+        </form>
+    {% else %}
+        <p>Please log in to add and view tasks.</p>
+    {% endif %}
+</body>
+</html>

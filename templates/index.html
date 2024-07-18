@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: darkgreen;
+        }
+        a {
+            color: #fff;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the To-Do List App</h1>
+        <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+        <a href="{{ url_for('register') }}" class="btn btn-secondary">Register</a>
+    </div>
+</body>
+</html>

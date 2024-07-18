@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome, {% if session['username'] %}{{ session['username'] }}{% else %}Guest{% endif %}</title>
+    <!-- Link Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Custom Styles */
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        h1, h2 {
+            color: #4CAF50; /* Green for headings */
+        }
+        .btn-primary {
+            background-color: #4CAF50; /* Dark green for primary button */
+            border-color: #4CAF50;
+        }
+        .btn-primary:hover {
+            background-color: #45a049; /* Darker green on hover */
+            border-color: #45a049;
+        }
+        .btn-danger {
+            background-color: #dc3545; /* Red for danger button */
+            border-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333; /* Darker red on hover */
+            border-color: #c82333;
+        }
+        .task-item {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #4CAF50; /* Green border */
+            border-radius: 5px;
+            background-color: #333; /* Dark background */
+        }
+        .task-item p {
+            color: #fff; /* White text color */
+        }
+        .task-item form {
+            display: inline;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, {% if session['username'] %}{{ session['username'] }}{% else %}Guest{% endif %}</h1>
+        <a href="{{ url_for('tasks') }}" class="btn btn-primary">Add Task</a>
+        
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+        <h2>Your Tasks</h2>
+        {% if tasks %}
+            <div class="task-list">
+                {% for task in tasks %}
+                <div class="task-item">
+                    <p><strong>Task:</strong> {{ task['task'] }}</p>
+                    <p><strong>Due Date:</strong> {{ task['due_date'] }}</p>
+                    <form action="{{ url_for('delete_task', task_id=task['_id']) }}" method="POST" style="display:inline;">
+                        <button type="submit">Delete</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No tasks found.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
