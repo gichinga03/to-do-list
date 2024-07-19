@@ -37,6 +37,7 @@ scheduler = BackgroundScheduler()
 scheduler.start()
 
 def add_task_to_database_and_schedule(user_id, task, due_date):
+  
     task_doc = {
         'user_id': user_id,
         'task': task,
@@ -63,10 +64,6 @@ def print_task(task):
 def index():
     return render_template('index.html')
 
-
-@app.route('/edit_task/<task_id>', methods=['GET', 'POST'])
-def edit_task(task_id):
-    return render_template('edit_task.html')
 
 
 
@@ -177,6 +174,31 @@ def delete_task(task_id):
 
 
 
+
+@app.route('/edit_task', methods=['POST'])
+def edit_task():
+    if 'user_id' not in session:
+        flash('Please log in to edit tasks', 'error')
+        return redirect(url_for('login'))
+
+    task_id = request.form.get('task_id')
+    task = request.form['task']
+    due_date_str = request.form['due_date']
+    try:
+        due_date = datetime.fromisoformat(due_date_str)
+        if due_date <= datetime.now():
+            flash('Due date must be in the future', 'error')
+            return redirect(url_for('tasks'))
+    except ValueError:
+        flash('Invalid date format', 'error')
+        return redirect(url_for('tasks'))
+    
+    tasks_collection.update_one(
+        {'_id': ObjectId(task_id)},
+        {'$set': {'task': task, 'due_date': due_date}}
+    )
+    flash('Task updated successfully', 'success')
+    return redirect(url_for('welcome'))
 
 
 if __name__ == '__main__':
