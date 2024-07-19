@@ -4,6 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Scheduler</title>
+
+    <script>
+        window.onload = function() {
+            // Autofill the due date input with the current date and time
+            let now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            let datetimeLocal = now.toISOString().slice(0, 16);
+            let dueDateInput = document.getElementById('due_date');
+            let addTaskButton = document.querySelector('input[type="submit"]');
+            let errorMessage = document.getElementById('error_message');
+            dueDateInput.value = datetimeLocal;
+
+            // Function to check if the due date is in the future
+            function checkDueDate() {
+                let dueDate = new Date(dueDateInput.value);
+                if (dueDate <= new Date()) {
+                    addTaskButton.disabled = true;
+                    errorMessage.style.display = 'block';
+                } else {
+                    addTaskButton.disabled = false;
+                    errorMessage.style.display = 'none';
+                }
+            }
+
+            // Initial check
+            checkDueDate();
+
+            // Add event listener to the due date input to validate the due date
+            dueDateInput.addEventListener('input', checkDueDate);
+        }
+    </script>
+
     <style>
         body {
             background-color: #222;
@@ -59,7 +91,16 @@
         p {
             color: #fff;
         }
+        #error_message {
+            display: none;
+            background-color: #dc3545; /* Red */
+            color: #fff;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
     </style>
+
 </head>
 <body>
     <h1>Task Scheduler</h1>
@@ -79,7 +120,9 @@
             <label for="due_date">Due Date:</label>
             <input type="datetime-local" id="due_date" name="due_date" required>
             
-            <input type="submit" value="Add Task">
+            <div id="error_message">Please adjust the time. The due date must be in the future.</div>
+            
+            <input type="submit" value="Add Task" id="addTaskButton">
         </form>
     {% else %}
         <p>Please log in to add and view tasks.</p>
