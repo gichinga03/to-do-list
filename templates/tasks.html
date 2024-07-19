@@ -58,7 +58,7 @@
             margin-bottom: 10px;
             color: #4CAF50; /* Dark green */
         }
-        input[type="text"], input[type="datetime-local"], input[type="submit"] {
+        input[type="text"], input[type="datetime-local"], textarea, input[type="submit"] {
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
@@ -66,6 +66,10 @@
             border: none;
             color: #fff;
             border-radius: 5px;
+        }
+        textarea {
+            height: 150px; /* Adjust height as needed */
+            resize: vertical; /* Allow vertical resizing */
         }
         input[type="submit"] {
             background-color: #4CAF50; /* Dark green */
@@ -114,8 +118,11 @@
             {% endif %}
         {% endwith %}
         <form method="POST" action="{{ url_for('tasks') }}">
-            <label for="task">Task:</label>
+            <label for="task_title">Task Title:</label>
             <input type="text" id="task" name="task" required>
+            
+            <label for="task_description">Task Description:</label>
+            <textarea id="task_description" name="task_description" required></textarea>
             
             <label for="due_date">Due Date:</label>
             <input type="datetime-local" id="due_date" name="due_date" required>

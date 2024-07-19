@@ -7,7 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 from  bson.objectid import ObjectId
 from apscheduler.jobstores.base import JobLookupError
-
+from datetime import datetime, timedelta
 
 
 
@@ -36,11 +36,12 @@ tasks_collection = db.tasks
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-def add_task_to_database_and_schedule(user_id, task, due_date):
+def add_task_to_database_and_schedule(user_id, task, task_description,due_date):
   
     task_doc = {
         'user_id': user_id,
         'task': task,
+        'task_description':task_description,
         'due_date': due_date,
         'created_at': datetime.now()
     }
@@ -52,12 +53,13 @@ def add_task_to_database_and_schedule(user_id, task, due_date):
         func=print_task,
         trigger='date',
         run_date=due_date,
-        args=[task]
+        args=[task,task_description]
     )
 
 # Dummy function to print task (replace with actual task handling logic)
-def print_task(task):
-    print(f"Executing task: {task}")
+def print_task(task, task_description):
+    print(f"Task: {task}")
+    print(f"Description: {task_description}")
 
 # Routes
 @app.route('/')
@@ -114,14 +116,66 @@ def login():
 
     return render_template('login.html')
 
+
+
+
+
+
+
+
+
 @app.route('/welcome')
 def welcome():
     if 'username' in session:
         user_id = session['user_id']
-        user_tasks = list(tasks_collection.find({'user_id': user_id}))
-        return render_template('welcome.html', tasks=user_tasks)
+        tasks = list(tasks_collection.find({'user_id': user_id}))
+
+        now = datetime.now()
+        one_hour_from_now = now + timedelta(hours=1)
+
+        classified_tasks = {
+            'done': [],
+            'urgent': [],
+            'not_done': []
+        }
+
+        for task in tasks:
+            due_date = task['due_date']
+            if due_date < now:
+                classified_tasks['done'].append(task)
+            elif due_date <= one_hour_from_now:
+                classified_tasks['urgent'].append(task)
+            else:
+                classified_tasks['not_done'].append(task)
+
+        # Sort tasks within each category by due date
+        for category in classified_tasks:
+            classified_tasks[category].sort(key=lambda x: x['due_date'])
+
+        return render_template('welcome.html', tasks=classified_tasks)
     else:
         return redirect(url_for('login'))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @app.route('/logout')
 def logout():
@@ -138,22 +192,35 @@ def tasks():
     user_id = session['user_id']
     if request.method == 'POST':
         task = request.form['task']
+        task_description = request.form['task_description']
         due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%dT%H:%M')
-        add_task_to_database_and_schedule(user_id, task, due_date)
+        add_task_to_database_and_schedule(user_id, task, task_description, due_date)
         flash('Task added and scheduled successfully!', 'success')
         return redirect(url_for('welcome'))
 
     return render_template('tasks.html')
 
 
-def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_due_date):
+def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_task_description, new_due_date):
     # Update the task in the database
     tasks_collection.update_one(
         {'_id': ObjectId(task_id)},
-        {'$set': {'task': new_task, 'due_date': new_due_date}}
+        {'$set': {
+            'task': new_task, 
+            'task_description': new_task_description, 
+            'due_date': new_due_date
+        }}
     )
     # Remove the old job from the scheduler
     scheduler.remove_job(str(task_id))
+    # Re-schedule the task with new details
+    scheduler.add_job(
+        id=str(task_id),
+        func=print_task,
+        trigger='date',
+        run_date=new_due_date,
+        args=[new_task, new_task_description]
+    )
 
 
 
@@ -183,6 +250,7 @@ def edit_task():
 
     task_id = request.form.get('task_id')
     task = request.form['task']
+    task_description = request.form['task_description']
     due_date_str = request.form['due_date']
     try:
         due_date = datetime.fromisoformat(due_date_str)
@@ -193,12 +261,12 @@ def edit_task():
         flash('Invalid date format', 'error')
         return redirect(url_for('tasks'))
     
-    tasks_collection.update_one(
-        {'_id': ObjectId(task_id)},
-        {'$set': {'task': task, 'due_date': due_date}}
-    )
+    # Call the function with the correct number of arguments
+    update_task_in_database_and_scheduler(task_id, session['user_id'], task, task_description, due_date)
+    
     flash('Task updated successfully', 'success')
     return redirect(url_for('welcome'))
+
 
 
 if __name__ == '__main__':

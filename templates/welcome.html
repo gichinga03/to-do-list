@@ -38,9 +38,19 @@
         .task-item {
             margin-bottom: 20px;
             padding: 10px;
-            border: 1px solid #4CAF50; /* Green border */
             border-radius: 5px;
-            background-color: #333; /* Dark background */
+        }
+        .done {
+            background-color: #463215; /* Yellow background for done tasks */
+            border: 1px solid #66553d; /* Yellow border for done tasks */
+        }
+        .urgent {
+            background-color: #eb8b95; /* Red background for urgent tasks */
+            border: 1px solid #b8626b; /* Red border for urgent tasks */
+        }
+        .not_done {
+            background-color: #4e7196; /* Blue background for not done tasks */
+            border: 1px solid #273a4e; /* Blue border for not done tasks */
         }
         .task-item p {
             color: #fff; /* White text color */
@@ -65,37 +75,47 @@
         <a href="{{ url_for('tasks') }}" class="btn btn-primary">Add Task</a>
         <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
         <h2>Your Tasks</h2>
-        {% if tasks %}
-            <div class="task-list">
-                {% for task in tasks %}
-                <div class="task-item">
-                    <p><strong>Task:</strong> {{ task['task'] }}</p>
-                    <p><strong>Due Date:</strong> {{ task['due_date'] }}</p>
-                    <form action="{{ url_for('delete_task', task_id=task['_id']) }}" method="POST" style="display:inline;">
-                        <button type="submit" class="btn btn-danger">Delete</button>
-                    </form>
-                    <button class="btn btn-primary" onclick="showEditForm('{{ task['_id'] }}')">Edit</button>
 
-                    <div id="edit-form-{{ task['_id'] }}" class="edit-form">
-                        <form method="POST" action="{{ url_for('edit_task') }}">
-                            <input type="hidden" name="task_id" value="{{ task['_id'] }}">
-                            <label for="task">Task:</label>
-                            <input type="text" id="task" name="task" value="{{ task['task'] }}" required>
-                            
-                            <label for="due_date">Due Date:</label>
-                            <input type="datetime-local" id="due_date" name="due_date" value="{{ task['due_date'] }}" required>
-                            
-                            <div class="error_message" style="display: none;">Please adjust the time. The due date must be in the future.</div>
-                            
-                            <input type="submit" value="Update Task" class="btn btn-primary">
+        {% for category, tasks in tasks.items() %}
+            <h3>{{ category.capitalize() }}</h3>
+            {% if tasks %}
+                <div class="task-list">
+                    {% for task in tasks %}
+                    <div class="task-item {{ category }}">
+                        <p><strong>Task:</strong> {{ task['task'] }}</p>
+                        <p><strong>Description:</strong> {{ task['task_description'] }}</p>
+                        <p><strong>Due Date:</strong> {{ task['due_date'].strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        <form action="{{ url_for('delete_task', task_id=task['_id']) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-danger">Delete</button>
                         </form>
+                        <button class="btn btn-primary" onclick="showEditForm('{{ task['_id'] }}')">Edit</button>
+
+                        <div id="edit-form-{{ task['_id'] }}" class="edit-form">
+                            <form method="POST" action="{{ url_for('edit_task') }}">
+                                <input type="hidden" name="task_id" value="{{ task['_id'] }}">
+                                <label for="task">Task:</label>
+                                <input type="text" id="task" name="task" value="{{ task['task'] }}" required>
+                                
+                                <label for="task_description">Description:</label>
+                                <input type="text" id="task_description" name="task_description" value="{{ task['task_description'] }}" required>
+                                
+
+
+                                <label for="due_date">Due Date:</label>
+                                <input type="datetime-local" id="due_date" name="due_date" value="{{ task['due_date'].strftime('%Y-%m-%dT%H:%M') }}" required>
+                                
+                                <div class="error_message" style="display: none;">Please adjust the time. The due date must be in the future.</div>
+                                
+                                <input type="submit" value="Update Task" class="btn btn-primary">
+                            </form>
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p>No tasks found.</p>
-        {% endif %}
+            {% else %}
+                <p>No tasks found.</p>
+            {% endif %}
+        {% endfor %}
     </div>
 </body>
 </html>
