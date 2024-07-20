@@ -1,33 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
-from  bson.objectid import ObjectId
 from apscheduler.jobstores.base import JobLookupError
+from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-
-
-
 
 # Initializing the Flask application
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
 uri = "mongodb+srv://gichinga03:Gichinga2003@cluster0.kialttn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-client = MongoClient(uri, server_api=ServerApi('1'))
-
-# Send a ping to confirm a successful connection
-try:
-    client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-except Exception as e:
-    print(e)
+client = MongoClient(uri)
 
 # MongoDB connection
-client = MongoClient(uri)
 db = client['to_do_list']
 users_registration = db.registration
 tasks_collection = db.tasks
@@ -36,24 +22,23 @@ tasks_collection = db.tasks
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-def add_task_to_database_and_schedule(user_id, task, task_description,due_date):
-  
+def add_task_to_database_and_schedule(user_id, task, task_description, due_date):
     task_doc = {
         'user_id': user_id,
         'task': task,
-        'task_description':task_description,
+        'task_description': task_description,
         'due_date': due_date,
         'created_at': datetime.now()
     }
     tasks_collection.insert_one(task_doc)
-    
+
     # Schedule the task
     scheduler.add_job(
         id=str(task_doc['_id']),
         func=print_task,
         trigger='date',
         run_date=due_date,
-        args=[task,task_description]
+        args=[task, task_description]
     )
 
 # Dummy function to print task (replace with actual task handling logic)
@@ -69,6 +54,29 @@ def index():
 
 
 
+
+
+# Create an admin user
+admin_user = {
+    'first_name': 'Admin',
+    'second_name': 'User',
+    'last_name': 'Admin',
+    'date_birth': '2000-01-01',
+    'email': 'admin@example.com',
+    'phone_number': '1234567890',
+    'username': 'admin',
+    'password': generate_password_hash('admin_password'),
+    'is_admin': True
+}
+
+# Insert the admin user into the database
+users_registration.insert_one(admin_user)
+
+
+
+
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -80,6 +88,7 @@ def register():
         phone_number = request.form['phone']
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
+        is_admin = 'is_admin' in request.form
 
         if users_registration.find_one({'username': username}):
             return "User already exists!"
@@ -92,7 +101,8 @@ def register():
             'email': email,
             'phone_number': phone_number,
             'username': username,
-            'password': password
+            'password': password,
+            'is_admin': is_admin
         })
         return redirect(url_for('index'))
 
@@ -109,6 +119,7 @@ def login():
         if user and check_password_hash(user['password'], password):
             session['username'] = user['username']
             session['user_id'] = str(user['_id'])
+            session['is_admin'] = user.get('is_admin', False)
             return redirect(url_for('welcome'))
         else:
             flash('Invalid username or password')
@@ -117,65 +128,40 @@ def login():
     return render_template('login.html')
 
 
-
-
-
-
-
-
-
 @app.route('/welcome')
 def welcome():
     if 'username' in session:
-        user_id = session['user_id']
-        tasks = list(tasks_collection.find({'user_id': user_id}))
+        if session.get('is_admin'):
+            return redirect(url_for('admin_dashboard'))
+        else:
+            user_id = session['user_id']
+            tasks = list(tasks_collection.find({'user_id': user_id}))
 
-        now = datetime.now()
-        one_hour_from_now = now + timedelta(hours=1)
+            now = datetime.now()
+            one_hour_from_now = now + timedelta(hours=1)
 
-        classified_tasks = {
-            'done': [],
-            'urgent': [],
-            'not_done': []
-        }
+            classified_tasks = {
+                'done': [],
+                'urgent': [],
+                'not_done': []
+            }
 
-        for task in tasks:
-            due_date = task['due_date']
-            if due_date < now:
-                classified_tasks['done'].append(task)
-            elif due_date <= one_hour_from_now:
-                classified_tasks['urgent'].append(task)
-            else:
-                classified_tasks['not_done'].append(task)
+            for task in tasks:
+                due_date = task['due_date']
+                if due_date < now:
+                    classified_tasks['done'].append(task)
+                elif due_date <= one_hour_from_now:
+                    classified_tasks['urgent'].append(task)
+                else:
+                    classified_tasks['not_done'].append(task)
 
-        # Sort tasks within each category by due date
-        for category in classified_tasks:
-            classified_tasks[category].sort(key=lambda x: x['due_date'])
+            # Sort tasks within each category by due date
+            for category in classified_tasks:
+                classified_tasks[category].sort(key=lambda x: x['due_date'])
 
-        return render_template('welcome.html', tasks=classified_tasks)
+            return render_template('welcome.html', tasks=classified_tasks)
     else:
         return redirect(url_for('login'))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 @app.route('/logout')
 def logout():
@@ -200,7 +186,6 @@ def tasks():
 
     return render_template('tasks.html')
 
-
 def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_task_description, new_due_date):
     # Update the task in the database
     tasks_collection.update_one(
@@ -211,8 +196,12 @@ def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_task_d
             'due_date': new_due_date
         }}
     )
-    # Remove the old job from the scheduler
-    scheduler.remove_job(str(task_id))
+    # Remove the old job from the scheduler, if it exists
+    try:
+        scheduler.remove_job(str(task_id))
+    except JobLookupError:
+        pass  # Handle gracefully if the job does not exist
+
     # Re-schedule the task with new details
     scheduler.add_job(
         id=str(task_id),
@@ -222,11 +211,9 @@ def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_task_d
         args=[new_task, new_task_description]
     )
 
-
-
 @app.route('/delete/<task_id>', methods=['POST'])
 def delete_task(task_id):
-    user_id = session.get('user_id')  # Use get to avoid KeyError if 'user_id' is not in session
+    user_id = session.get('user_id')
     try:
         result = tasks_collection.delete_one({'_id': ObjectId(task_id)})
         scheduler.remove_job(task_id)
@@ -237,10 +224,6 @@ def delete_task(task_id):
         flash(f'Error deleting task: {str(e)}', 'error')
 
     return redirect(url_for('welcome'))
-
-
-
-
 
 @app.route('/edit_task', methods=['POST'])
 def edit_task():
@@ -260,12 +243,77 @@ def edit_task():
     except ValueError:
         flash('Invalid date format', 'error')
         return redirect(url_for('tasks'))
-    
-    # Call the function with the correct number of arguments
+
     update_task_in_database_and_scheduler(task_id, session['user_id'], task, task_description, due_date)
-    
-    flash('Task updated successfully', 'success')
+
+    #flash('Task updated successfully', 'success')
     return redirect(url_for('welcome'))
+
+
+
+"""
+
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    if 'username' in session and session.get('is_admin'):
+        users = users_registration.find()
+        all_tasks = []
+
+        for user in users:
+            user_tasks = list(tasks_collection.find({'user_id': str(user['_id'])}))
+            for task in user_tasks:
+                task['username'] = user['username']
+            all_tasks.extend(user_tasks)
+
+        now = datetime.now()
+        one_hour_from_now = now + timedelta(hours=1)
+
+        classified_tasks = {
+            'done': [],
+            'urgent': [],
+            'not_done': []
+        }
+
+        for task in all_tasks:
+            due_date = task['due_date']
+            if due_date < now:
+                classified_tasks['done'].append(task)
+            elif due_date <= one_hour_from_now:
+                classified_tasks['urgent'].append(task)
+            else:
+                classified_tasks['not_done'].append(task)
+
+        # Sort tasks within each category by due date
+        for category in classified_tasks:
+            classified_tasks[category].sort(key=lambda x: x['due_date'])
+
+        return render_template('admin.html', tasks=classified_tasks)
+    else:
+        return redirect(url_for('login'))
+
+"""
+
+
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    if 'username' in session and session.get('is_admin'):
+        users = list(users_registration.find())
+
+        return render_template('admin.html', users=users)
+    else:
+        return redirect(url_for('login'))
+  
+
+
+@app.route('/user_details/<user_id>')
+def view_user_details(user_id):
+    if 'username' in session and session.get('is_admin'):
+        user = users_registration.find_one({'_id': ObjectId(user_id)})
+        tasks = list(tasks_collection.find({'user_id': user_id}))
+
+        return render_template('user_details.html', user=user, tasks=tasks)
+    else:
+        return redirect(url_for('login'))
 
 
 

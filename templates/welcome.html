@@ -67,6 +67,10 @@
         function showEditForm(taskId) {
             document.getElementById('edit-form-' + taskId).style.display = 'block';
         }
+
+        function hideEditForm(taskId) {
+            document.getElementById('edit-form-' + taskId).style.display = 'none';
+        }
     </script>
 </head>
 <body>
@@ -91,7 +95,7 @@
                         <button class="btn btn-primary" onclick="showEditForm('{{ task['_id'] }}')">Edit</button>
 
                         <div id="edit-form-{{ task['_id'] }}" class="edit-form">
-                            <form method="POST" action="{{ url_for('edit_task') }}">
+                            <form method="POST" action="{{ url_for('edit_task') }}" onsubmit="hideEditForm('{{ task['_id'] }}')">
                                 <input type="hidden" name="task_id" value="{{ task['_id'] }}">
                                 <label for="task">Task:</label>
                                 <input type="text" id="task" name="task" value="{{ task['task'] }}" required>
@@ -99,8 +103,6 @@
                                 <label for="task_description">Description:</label>
                                 <input type="text" id="task_description" name="task_description" value="{{ task['task_description'] }}" required>
                                 
-
-
                                 <label for="due_date">Due Date:</label>
                                 <input type="datetime-local" id="due_date" name="due_date" value="{{ task['due_date'].strftime('%Y-%m-%dT%H:%M') }}" required>
                                 

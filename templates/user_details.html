@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Details</title>
+    <!-- Link Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Custom Styles */
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+        h1, h2 {
+            color: #4CAF50; /* Green for headings */
+        }
+        a {
+            color: #4CAF50; /* Green for links */
+        }
+        a:hover {
+            color: #45a049; /* Darker green on hover */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #4CAF50; /* Green border */
+        }
+        th {
+            background-color: #333;
+            color: #4CAF50; /* Green text */
+        }
+        tr:nth-child(even) {
+            background-color: #2a2a2a;
+        }
+        .btn-primary {
+            background-color: #4CAF50; /* Dark green for primary button */
+            border-color: #4CAF50;
+        }
+        .btn-primary:hover {
+            background-color: #45a049; /* Darker green on hover */
+            border-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>User Details</h1>
+        <p><strong>First Name:</strong> {{ user.first_name }}</p>
+        <p><strong>Second Name:</strong> {{ user.second_name }}</p>
+        <p><strong>Last Name:</strong> {{ user.last_name }}</p>
+        <p><strong>Date of Birth:</strong> {{ user.date_birth }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Phone Number:</strong> {{ user.phone_number }}</p>
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Password (Hashed):</strong> {{ user.password }}</p>
+        <h2>Scheduled Tasks</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Description</th>
+                    <th>Due Date</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.task }}</td>
+                    <td>{{ task.task_description }}</td>
+                    <td>{{ task.due_date }}</td>
+                    <td>{{ task.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Back to Admin Dashboard</a>
+    </div>
+</body>
+</html>
