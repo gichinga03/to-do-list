@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,21 +8,26 @@ from apscheduler.jobstores.base import JobLookupError
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Initializing the Flask application
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+app.secret_key = os.getenv("APP_SECRET_KEY")
 
-uri = "mongodb+srv://gichinga03:Gichinga2003@cluster0.kialttn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+uri = os.getenv("MONGODB_URI")
 client = MongoClient(uri)
 
 # MongoDB connection
-db = client['to_do_list']
+db = client[os.getenv("MONGODB_NAME")]
 users_registration = db.registration
 tasks_collection = db.tasks
 
 # Scheduler setup
 scheduler = BackgroundScheduler()
 scheduler.start()
+
 
 def add_task_to_database_and_schedule(user_id, task, task_description, due_date):
     task_doc = {
@@ -41,19 +48,17 @@ def add_task_to_database_and_schedule(user_id, task, task_description, due_date)
         args=[task, task_description]
     )
 
+
 # Dummy function to print task (replace with actual task handling logic)
 def print_task(task, task_description):
     print(f"Task: {task}")
     print(f"Description: {task_description}")
 
+
 # Routes
 @app.route('/')
 def index():
     return render_template('index.html')
-
-
-
-
 
 
 # Create an admin user
@@ -71,10 +76,6 @@ admin_user = {
 
 # Insert the admin user into the database
 users_registration.insert_one(admin_user)
-
-
-
-
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -107,6 +108,7 @@ def register():
         return redirect(url_for('index'))
 
     return render_template('registration.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -163,11 +165,13 @@ def welcome():
     else:
         return redirect(url_for('login'))
 
+
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     session.pop('user_id', None)
     return redirect(url_for('index'))
+
 
 @app.route('/tasks', methods=['GET', 'POST'])
 def tasks():
@@ -186,13 +190,14 @@ def tasks():
 
     return render_template('tasks.html')
 
+
 def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_task_description, new_due_date):
     # Update the task in the database
     tasks_collection.update_one(
         {'_id': ObjectId(task_id)},
         {'$set': {
-            'task': new_task, 
-            'task_description': new_task_description, 
+            'task': new_task,
+            'task_description': new_task_description,
             'due_date': new_due_date
         }}
     )
@@ -211,6 +216,7 @@ def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_task_d
         args=[new_task, new_task_description]
     )
 
+
 @app.route('/delete/<task_id>', methods=['POST'])
 def delete_task(task_id):
     user_id = session.get('user_id')
@@ -224,6 +230,7 @@ def delete_task(task_id):
         flash(f'Error deleting task: {str(e)}', 'error')
 
     return redirect(url_for('welcome'))
+
 
 @app.route('/edit_task', methods=['POST'])
 def edit_task():
@@ -248,7 +255,6 @@ def edit_task():
 
     #flash('Task updated successfully', 'success')
     return redirect(url_for('welcome'))
-
 
 
 """
@@ -302,7 +308,6 @@ def admin_dashboard():
         return render_template('admin.html', users=users)
     else:
         return redirect(url_for('login'))
-  
 
 
 @app.route('/user_details/<user_id>')
@@ -314,7 +319,6 @@ def view_user_details(user_id):
         return render_template('user_details.html', user=user, tasks=tasks)
     else:
         return redirect(url_for('login'))
-
 
 
 if __name__ == '__main__':
