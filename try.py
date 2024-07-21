@@ -132,38 +132,38 @@ def login():
 
 @app.route('/welcome')
 def welcome():
-    if 'username' in session:
-        if session.get('is_admin'):
-            return redirect(url_for('admin_dashboard'))
-        else:
-            user_id = session['user_id']
-            tasks = list(tasks_collection.find({'user_id': user_id}))
-
-            now = datetime.now()
-            one_hour_from_now = now + timedelta(hours=1)
-
-            classified_tasks = {
-                'done': [],
-                'urgent': [],
-                'not_done': []
-            }
-
-            for task in tasks:
-                due_date = task['due_date']
-                if due_date < now:
-                    classified_tasks['done'].append(task)
-                elif due_date <= one_hour_from_now:
-                    classified_tasks['urgent'].append(task)
-                else:
-                    classified_tasks['not_done'].append(task)
-
-            # Sort tasks within each category by due date
-            for category in classified_tasks:
-                classified_tasks[category].sort(key=lambda x: x['due_date'])
-
-            return render_template('welcome.html', tasks=classified_tasks)
-    else:
+    if 'username' not in session:
         return redirect(url_for('login'))
+
+    if session.get('is_admin'):
+        return redirect(url_for('admin_dashboard'))
+
+    user_id = session['user_id']
+    tasks = list(tasks_collection.find({'user_id': user_id}))
+
+    now = datetime.now()
+    one_hour_from_now = now + timedelta(hours=1)
+
+    classified_tasks = {
+        'done': [],
+        'urgent': [],
+        'not_done': []
+    }
+
+    for task in tasks:
+        due_date = task['due_date']
+        if due_date < now:
+            classified_tasks['done'].append(task)
+        elif due_date <= one_hour_from_now:
+            classified_tasks['urgent'].append(task)
+        else:
+            classified_tasks['not_done'].append(task)
+
+    # Sort tasks within each category by due date
+    for category in classified_tasks:
+        classified_tasks[category].sort(key=lambda x: x['due_date'])
+
+    return render_template('welcome.html', tasks=classified_tasks)
 
 
 @app.route('/logout')
