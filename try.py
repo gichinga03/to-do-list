@@ -1,5 +1,3 @@
-import os
-
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,26 +6,21 @@ from apscheduler.jobstores.base import JobLookupError
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 # Initializing the Flask application
 app = Flask(__name__)
-app.secret_key = os.getenv("APP_SECRET_KEY")
+app.secret_key = 'your_secret_key_here'
 
-uri = os.getenv("MONGODB_URI")
+uri = "mongodb+srv://gichinga03:Gichinga2003@cluster0.kialttn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(uri)
 
 # MongoDB connection
-db = client[os.getenv("MONGODB_NAME")]
+db = client['to_do_list']
 users_registration = db.registration
 tasks_collection = db.tasks
 
 # Scheduler setup
 scheduler = BackgroundScheduler()
 scheduler.start()
-
 
 def add_task_to_database_and_schedule(user_id, task, task_description, due_date):
     task_doc = {
@@ -48,17 +41,19 @@ def add_task_to_database_and_schedule(user_id, task, task_description, due_date)
         args=[task, task_description]
     )
 
-
 # Dummy function to print task (replace with actual task handling logic)
 def print_task(task, task_description):
     print(f"Task: {task}")
     print(f"Description: {task_description}")
 
-
 # Routes
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+
+
 
 
 # Create an admin user
@@ -76,6 +71,10 @@ admin_user = {
 
 # Insert the admin user into the database
 users_registration.insert_one(admin_user)
+
+
+
+
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -109,7 +108,6 @@ def register():
 
     return render_template('registration.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -130,7 +128,7 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/welcome')
+@app.route('/welcome', methods=['GET'])
 def welcome():
     if 'username' in session:
         if session.get('is_admin'):
@@ -142,6 +140,9 @@ def welcome():
             now = datetime.now()
             one_hour_from_now = now + timedelta(hours=1)
 
+            # Default filter is 'all'
+            filter_status = request.args.get('filter', 'all')
+
             classified_tasks = {
                 'done': [],
                 'urgent': [],
@@ -150,7 +151,9 @@ def welcome():
 
             for task in tasks:
                 due_date = task['due_date']
-                if due_date < now:
+                if task.get('status') == 'done':
+                    classified_tasks['done'].append(task)
+                elif due_date < now:
                     classified_tasks['done'].append(task)
                 elif due_date <= one_hour_from_now:
                     classified_tasks['urgent'].append(task)
@@ -161,17 +164,32 @@ def welcome():
             for category in classified_tasks:
                 classified_tasks[category].sort(key=lambda x: x['due_date'])
 
-            return render_template('welcome.html', tasks=classified_tasks)
+            # Apply filtering based on user selection
+            if filter_status != 'all':
+                filtered_tasks = {
+                    category: [task for task in tasks if task.get('status') == filter_status]
+                    for category in classified_tasks
+                }
+                return render_template('welcome.html', tasks=filtered_tasks)
+            else:
+                return render_template('welcome.html', tasks=classified_tasks)
     else:
         return redirect(url_for('login'))
 
+@app.route('/update_task_status', methods=['POST'])
+def update_task_status():
+    task_id = request.form.get('task_id')
+    new_status = request.form.get('status')
 
+    if task_id and new_status:
+        tasks_collection.update_one({'_id': task_id}, {'$set': {'status': new_status}})
+
+    return redirect(url_for('welcome'))
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     session.pop('user_id', None)
     return redirect(url_for('index'))
-
 
 @app.route('/tasks', methods=['GET', 'POST'])
 def tasks():
@@ -190,14 +208,13 @@ def tasks():
 
     return render_template('tasks.html')
 
-
 def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_task_description, new_due_date):
     # Update the task in the database
     tasks_collection.update_one(
         {'_id': ObjectId(task_id)},
         {'$set': {
-            'task': new_task,
-            'task_description': new_task_description,
+            'task': new_task, 
+            'task_description': new_task_description, 
             'due_date': new_due_date
         }}
     )
@@ -216,7 +233,6 @@ def update_task_in_database_and_scheduler(task_id, user_id, new_task, new_task_d
         args=[new_task, new_task_description]
     )
 
-
 @app.route('/delete/<task_id>', methods=['POST'])
 def delete_task(task_id):
     user_id = session.get('user_id')
@@ -230,7 +246,6 @@ def delete_task(task_id):
         flash(f'Error deleting task: {str(e)}', 'error')
 
     return redirect(url_for('welcome'))
-
 
 @app.route('/edit_task', methods=['POST'])
 def edit_task():
@@ -255,6 +270,7 @@ def edit_task():
 
     #flash('Task updated successfully', 'success')
     return redirect(url_for('welcome'))
+
 
 
 """
@@ -319,6 +335,27 @@ def view_user_details(user_id):
         return render_template('user_details.html', user=user, tasks=tasks)
     else:
         return redirect(url_for('login'))
+
+
+
+@app.route('/delete_user/<user_id>', methods=['POST'])
+def delete_user(user_id):
+    if 'username' in session and session.get('is_admin'):
+        try:
+            # Delete the user
+            users_registration.delete_one({'_id': ObjectId(user_id)})
+            
+            # Delete the user's tasks
+            tasks_collection.delete_many({'user_id': user_id})
+
+            flash('User successfully deleted!', 'success')
+        except Exception as e:
+            flash(f'Error deleting user: {str(e)}', 'error')
+    else:
+        flash('You are not authorized to perform this action.', 'error')
+    
+    return redirect(url_for('admin_dashboard'))
+
 
 
 if __name__ == '__main__':

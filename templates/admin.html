@@ -53,6 +53,14 @@
             background-color: #45a049; /* Darker green on hover */
             border-color: #45a049;
         }
+        .btn-danger {
+            background-color: #dc3545; /* Red for delete button */
+            border-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333; /* Darker red on hover */
+            border-color: #bd2130;
+        }
     </style>
 </head>
 <body>
@@ -83,6 +91,9 @@
                     <td>{{ user.username }}</td>
                     <td>
                         <a href="{{ url_for('view_user_details', user_id=user._id) }}" class="btn btn-primary">View Details</a>
+                        <form method="post" action="{{ url_for('delete_user', user_id=user._id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}
