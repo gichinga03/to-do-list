@@ -55,7 +55,7 @@ def index():
 
 
 
-
+"""
 # Create an admin user
 admin_user = {
     'first_name': 'Admin',
@@ -72,7 +72,7 @@ admin_user = {
 # Insert the admin user into the database
 users_registration.insert_one(admin_user)
 
-
+"""
 
 
 
@@ -288,7 +288,23 @@ def admin_dashboard():
             all_tasks.extend(user_tasks)
 
         now = datetime.now()
-        one_hour_from_now = now + timedelta(hours=1)
+        one_hour_from_now = now + timedelt<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <!-- Link Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Custom Styles */
+…                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+a(hours=1)
 
         classified_tasks = {
             'done': [],
