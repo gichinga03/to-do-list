@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
-uri = "mongodb+srv://gichinga03:Gichinga2003@cluster0.kialttn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+uri = ""
 client = MongoClient(uri)
 
 # MongoDB connection
